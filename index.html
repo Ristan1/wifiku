@@ -48,9 +48,9 @@
       </div>
       <div class="flex items-center gap-2">
         <template x-if="offlineQueue.length > 0">
-          <button @click="syncOfflineData()" class="p-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg transition-all flex items-center gap-2 text-xs font-bold animate-pulse">
-            <i class="ph ph-cloud-arrow-up text-sm"></i>
-            <span class="hidden md:inline" x-text="'Sinkron ' + offlineQueue.length + ' Data'"></span>
+          <button @click="syncOfflineData()" :disabled="isSyncing" :class="isSyncing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-amber-400 animate-pulse'" class="p-2.5 rounded-lg bg-amber-500 text-slate-900 shadow-lg transition-all flex items-center gap-2 text-xs font-bold">
+            <i class="ph ph-cloud-arrow-up text-sm" :class="isSyncing ? 'animate-bounce' : ''"></i>
+            <span class="hidden md:inline" x-text="isSyncing ? 'Mengirim...' : 'Sinkron ' + offlineQueue.length + ' Data'"></span>
           </button>
         </template>
         <button @click="fetchData()" class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all flex items-center gap-2 text-xs font-semibold" :disabled="loading">
@@ -64,7 +64,7 @@
   </header>
 
   <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-6 space-y-6">
-    <div x-show="loading" class="w-full bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl flex items-center gap-3">
+    <div x-show="loading && !isSyncing" class="w-full bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl flex items-center gap-3">
       <svg class="animate-spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
       <p class="text-xs font-semibold text-blue-300">Menyinkronkan data dengan server...</p>
     </div>
@@ -225,7 +225,7 @@
 
   <script>
     // MASUKKAN URL APP SCRIPT ANDA DI BAWAH INI:
-    const API_URL = "https://script.google.com/macros/s/AKfycbwhV_3ZWP-Thpkm0qLSXXyuQ0_EBoAVUxDmhuXKcfXvSPguxaM85vPUwCn83tuZcnkA/exec";
+    const API_URL = "URL_WEB_APP_ANDA_PASTE_DISINI";
 
     function wifiApp() {
       return {
@@ -237,6 +237,7 @@
         paymentModalOpen: false, paymentData: { customer: null, monthIndex: 0, monthName: '', nominal: '' },
         
         isOnline: navigator.onLine,
+        isSyncing: false, // INDIKATOR PENCEGAH SPAM KLIK
         offlineQueue: JSON.parse(localStorage.getItem('wifiOfflineQueue')) || [],
 
         init() { 
@@ -389,30 +390,38 @@
           } finally { this.loading = false; }
         },
 
+        // LOGIKA BARU: Kirim data antrean dan Cegah SPAM
         async syncOfflineData() {
           if (!this.isOnline) return this.showToast("Masih Offline! Cari sinyal dulu.");
-          this.loading = true;
+          if (this.isSyncing) return; // Abaikan jika sedang proses kirim
+          if (this.offlineQueue.length === 0) return;
+
+          this.isSyncing = true;
+          this.showToast(`Mengirim ${this.offlineQueue.length} data... Mohon tunggu.`);
           
-          for (let i = 0; i < this.offlineQueue.length; i++) {
+          // Salin antrean agar aman
+          let queueToProcess = [...this.offlineQueue];
+
+          for (let i = 0; i < queueToProcess.length; i++) {
             try {
-              await fetch(API_URL, { method: 'POST', body: JSON.stringify(this.offlineQueue[i]) });
+              await fetch(API_URL, { method: 'POST', body: JSON.stringify(queueToProcess[i]) });
+              // Hapus data yang berhasil dari antrean utama satu per satu
+              this.offlineQueue.shift(); 
+              this.saveQueueLocally();
             } catch(e) {
               this.showToast("Sinyal putus! Proses sinkronisasi terhenti."); 
-              this.offlineQueue.splice(0, i); // Hapus data yang sudah sukses terkirim
-              this.saveQueueLocally();
-              this.loading = false; 
+              this.isSyncing = false;
               return;
             }
           }
           
-          this.offlineQueue = []; this.saveQueueLocally();
           this.showToast("✅ Sinkronisasi semua antrean selesai!");
+          this.isSyncing = false;
           this.fetchData();
         }
       };
     }
 
-    // REGISTRASI SERVICE WORKER UNTUK PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js');
