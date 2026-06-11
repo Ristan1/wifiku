@@ -1,44 +1,21 @@
-const CACHE_NAME = 'wifipay-v3'; // Naik versi ke v3
+const CACHE_NAME = 'wifipay-v4'; // Naik ke versi 4
+
+const urlsToCache = [
+  './',
+  './index.html',
+  './manifest.json',
+  'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js',
+  'https://unpkg.com/@phosphor-icons/web'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll([
-        './',
-        './index.html',
-        './manifest.json',
-        'https://cdn.tailwindcss.com',
-        'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js',
-        'https://unpkg.com/@phosphor-icons/web'
-      ]);
+      return cache.addAll(urlsToCache);
     })
   );
   self.skipWaiting();
-});
-
-self.addEventListener('fetch', event => {
-  // Abaikan permintaan selain GET (seperti POST untuk kirim data) dan abaikan API Google Apps Script
-  if (event.request.method !== 'GET' || event.request.url.includes('script.google.com')) {
-    return;
-  }
-  
-  event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        // Ambil dari cache, tapi diam-diam perbarui dari internet di latar belakang (Stale-while-revalidate)
-        fetch(event.request).then(networkResponse => {
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
-        }).catch(() => {});
-        return cachedResponse;
-      }
-      
-      // Jika belum ada di cache (seperti file font ikon), ambil dari internet lalu simpan ke cache
-      return fetch(event.request).then(networkResponse => {
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
-        return networkResponse;
-      }).catch(() => {}); // Tetap aman walau offline
-    })
-  );
 });
 
 self.addEventListener('activate', event => {
@@ -54,4 +31,28 @@ self.addEventListener('activate', event => {
     })
   );
   self.clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+  // Abaikan permintaan selain GET atau yang menuju server Google Apps Script
+  if (event.request.method !== 'GET' || event.request.url.includes('script.google.com')) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      // 1. Jika file ada di memori/cache, langsung tampilkan!
+      if (response) {
+        return response;
+      }
+      
+      // 2. Jika tidak ada di cache, coba ambil dari internet
+      return fetch(event.request).catch(() => {
+        // 3. JARING PENGAMAN: Jika internet mati dari awal saat buka web, paksa buka index.html
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+      });
+    })
+  );
 });
