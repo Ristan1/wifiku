@@ -275,8 +275,11 @@
         showSyncWarning: false, // INDIKATOR POP-UP BARU
         offlineQueue: JSON.parse(localStorage.getItem('wifiOfflineQueue')) || [],
 
-        init() { 
-          if(this.customers.length === 0) this.fetchData();
+                init() { 
+          // Jika dalam mode online, otomatis tarik data terbaru dari server
+          if (this.isOnline) {
+            this.fetchData();
+          }
           
           window.addEventListener('online', () => { 
             this.isOnline = true; 
