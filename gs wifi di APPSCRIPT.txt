@@ -1,0 +1,255 @@
+/**
+ * =================================================================
+ * BAGIAN 1: OTAK CERDAS GOOGLE SHEETS
+ * =================================================================
+ */
+function ANALISA_WIFI(tglPasangRange, rentangBulanRange) {
+  if (!Array.isArray(tglPasangRange)) tglPasangRange = [[tglPasangRange]];
+  if (!Array.isArray(rentangBulanRange)) rentangBulanRange = [[rentangBulanRange]];
+
+  var results = [];
+  var today = new Date();
+  var tarifBulanan = 150000;
+  var tarifHarian = 5000; 
+  var biayaPasang = 80000; 
+
+  for (var r = 0; r < tglPasangRange.length; r++) {
+    var tglPasang = tglPasangRange[r][0];
+    if (!tglPasang || tglPasang === "") { results.push(["", "", ""]); continue; }
+
+    var start = new Date(tglPasang);
+    if (isNaN(start.getTime())) { results.push(["", "", ""]); continue; }
+    start.setHours(0, 0, 0, 0); 
+
+    var bulanBerjalan = 1; 
+    var tempDate = new Date(start.getFullYear(), start.getMonth(), 10);
+    if (start.getDate() >= 10) { tempDate.setMonth(tempDate.getMonth() + 1); }
+    var diffDays = Math.round((tempDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 10) { tempDate.setMonth(tempDate.getMonth() + 1); }
+    
+    while (tempDate <= today) {
+      bulanBerjalan++;
+      tempDate.setMonth(tempDate.getMonth() + 1);
+    }
+
+    var totalKewajiban = (bulanBerjalan * tarifBulanan) + biayaPasang;
+    var totalKredit = 0;
+    var dataBulan = rentangBulanRange[r];
+    
+    if (dataBulan) {
+      for (var i = 0; i < dataBulan.length; i++) {
+        var sel = dataBulan[i];
+        if (sel !== "" && sel !== undefined && sel !== null) {
+          var catatan = sel.toString().toUpperCase();
+          var uangDibayar = 0;
+          var teksUang = catatan.split('(')[0]; 
+          var matchAngka = teksUang.match(/[\d\.]+/); 
+          if (matchAngka) { uangDibayar = parseInt(matchAngka[0].replace(/\./g, ''), 10); }
+          
+          var diskon = 0;
+          var matchKode = catatan.match(/\((.*?)\)/);
+          if (matchKode) {
+            var kode = matchKode[1];
+            if (kode.startsWith('D') || kode.startsWith('G')) {
+              var stringHari = kode.substring(1).trim();
+              var hari = parseInt(stringHari, 10);
+              if (isNaN(hari) || stringHari === "") { hari = 30; }
+              diskon = hari * tarifHarian;
+            }
+          }
+          totalKredit += (uangDibayar + diskon);
+        }
+      }
+    }
+
+    var sisaTagihan = totalKewajiban - totalKredit;
+    var bulanNunggak = 0;
+    if (sisaTagihan > 0) { bulanNunggak = Math.floor(sisaTagihan / tarifBulanan); }
+    results.push([bulanBerjalan, bulanNunggak, sisaTagihan]);
+  }
+  return results;
+}
+
+function onEdit(e) {
+  if (!e) return;
+  var props = PropertiesService.getDocumentProperties();
+  props.setProperty('lastEditTime', new Date().getTime().toString());
+  props.setProperty('needsBackup', 'true');
+
+  var sheet = e.source.getActiveSheet();
+  if (!sheet.getName().toLowerCase().includes("pembayaran wifi")) return;
+
+  var range = e.range;
+  var col = range.getColumn();
+  var row = range.getRow();
+  var val = e.value;
+
+  if (col === 1 && row > 1) {
+    var cellWaktu = sheet.getRange(row, 2);
+    if (val && cellWaktu.getValue() === "") { cellWaktu.setValue(new Date()); } 
+    else if (!val) { cellWaktu.clearContent(); }
+  }
+
+  if (col >= 3 && col <= 14 && row > 1 && val) {
+    var teks = val.toString().toUpperCase();
+    if (teks.includes('(')) {
+      var bagian = teks.split('(');
+      var angkaMurni = bagian[0].replace(/[^\d]/g, ''); 
+      var kodeDalamKurung = bagian[1]; 
+      if (angkaMurni !== "") {
+        var formatRupiah = "Rp " + Number(angkaMurni).toLocaleString('id-ID');
+        sheet.getRange(row, col).setValue(formatRupiah + "(" + kodeDalamKurung);
+      }
+    }
+  }
+}
+
+function createBackupIfIdle() {
+  var props = PropertiesService.getDocumentProperties();
+  if (props.getProperty('needsBackup') === 'true') {
+    var lastEditTime = parseInt(props.getProperty('lastEditTime'));
+    if (new Date().getTime() - lastEditTime >= 3600000) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var backupName = "BACKUP_" + ss.getName();
+      var existingBackups = DriveApp.getFilesByName(backupName);
+      while (existingBackups.hasNext()) { existingBackups.next().setTrashed(true); }
+      DriveApp.getFileById(ss.getId()).makeCopy(backupName);
+      props.setProperty('needsBackup', 'false');
+    }
+  }
+}
+
+function setupTrigger() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if(triggers[i].getHandlerFunction() === 'createBackupIfIdle') { ScriptApp.deleteTrigger(triggers[i]); }
+  }
+  ScriptApp.newTrigger('createBackupIfIdle').timeBased().everyHours(1).create();
+}
+
+/**
+ * =================================================================
+ * BAGIAN 2: PENGIRIM & PENERIMA DATA KE WEB APP
+ * =================================================================
+ */
+function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile("Index")
+      .setTitle("WiFi Pay - Admin Console")
+      .addMetaTag("viewport", "width=device-width, initial-scale=1")
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function getActiveWifiSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var targetSheet = ss.getSheetByName("pembayaran wifi 2026");
+  if (targetSheet) return targetSheet;
+  
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].getName().toLowerCase().includes("pembayaran wifi")) { return sheets[i]; }
+  }
+  return null;
+}
+
+function getAllCustomers() {
+  var sheet = getActiveWifiSheet();
+  if (!sheet) return [];
+
+  var data = sheet.getDataRange().getValues();
+  var customers = [];
+
+  for (var r = 1; r < data.length; r++) {
+    var row = data[r];
+    var nama = row[0]; 
+    if (!nama || nama === "") continue;
+
+    var cekStatus = function(val) {
+      if (val && val.toString().trim() !== "") return "Lunas"; 
+      return "Belum";
+    };
+
+    var nunggakAsli = parseInt(row[15]) || 0;     
+    var sisaTagihanAsli = parseInt(row[16]) || 0; 
+    
+    var tglPasangRapi = "";
+    if (row[1]) {
+      try { tglPasangRapi = Utilities.formatDate(new Date(row[1]), "GMT+8", "dd MMM yyyy"); }
+      catch(e) { tglPasangRapi = row[1].toString(); }
+    }
+
+    customers.push({
+      name: nama.toString(),
+      installationDate: tglPasangRapi,
+      monthlyRate: 150000,
+      jan: cekStatus(row[2]), feb: cekStatus(row[3]), mar: cekStatus(row[4]),
+      apr: cekStatus(row[5]), may: cekStatus(row[6]), jun: cekStatus(row[7]),
+      jul: cekStatus(row[8]), aug: cekStatus(row[9]), sep: cekStatus(row[10]),
+      oct: cekStatus(row[11]), nov: cekStatus(row[12]), dec: cekStatus(row[13]),
+      realArrearMonths: nunggakAsli,
+      realArrears: sisaTagihanAsli
+    });
+  }
+  return customers;
+}
+
+function addNewCustomerLive(form) {
+  var sheet = getActiveWifiSheet();
+  if (!sheet) throw new Error("Sheet tidak ditemukan!");
+
+  var dataA = sheet.getRange("A:A").getValues();
+  var lastRealRow = 0;
+  
+  for (var i = dataA.length - 1; i >= 0; i--) {
+    if (dataA[i][0].toString().trim() !== "") {
+      lastRealRow = i + 1;
+      break;
+    }
+  }
+
+  var targetRow = lastRealRow > 0 ? lastRealRow + 1 : 13;
+
+  sheet.getRange(targetRow, 1).setValue(form.name);
+  
+  var tgl = new Date(form.installationDate);
+  var tglFormatted = form.installationDate;
+  if (!isNaN(tgl.getTime())) {
+    tglFormatted = Utilities.formatDate(tgl, "GMT+8", "dd MMM yyyy");
+  }
+  sheet.getRange(targetRow, 2).setValue(tglFormatted);
+
+  // LOGIKA BARU: Pastikan Kotak Bulan Jan-Des 100% KOSONG dan BERSIIH
+  for (var col = 3; col <= 14; col++) {
+    sheet.getRange(targetRow, col).clearContent();
+  }
+
+  return getAllCustomers();
+}
+
+function updatePaymentLive(name, monthIndex, nominal) {
+  var sheet = getActiveWifiSheet();
+  if (!sheet) throw new Error("Sheet tidak ditemukan!");
+
+  var data = sheet.getRange("A:A").getValues();
+  var rowIndex = -1;
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][0].toString().trim() === name.trim()) { rowIndex = i + 1; break; }
+  }
+  if (rowIndex === -1) throw new Error("Pelanggan tidak ditemukan.");
+
+  var colIndex = monthIndex + 3; 
+  var teks = nominal.toString().toUpperCase();
+  var hasilAkhir = nominal;
+  
+  if (teks.includes('(')) {
+    var bagian = teks.split('(');
+    var angkaMurni = bagian[0].replace(/[^\d]/g, '');
+    var kodeDalamKurung = bagian[1];
+    if (angkaMurni !== "") hasilAkhir = "Rp " + Number(angkaMurni).toLocaleString('id-ID') + "(" + kodeDalamKurung;
+  } else {
+    var angkaMurni = teks.replace(/[^\d]/g, '');
+    if (angkaMurni !== "") hasilAkhir = "Rp " + Number(angkaMurni).toLocaleString('id-ID');
+  }
+
+  sheet.getRange(rowIndex, colIndex).setValue(hasilAkhir);
+  return getAllCustomers();
+}
