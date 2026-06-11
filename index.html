@@ -25,7 +25,6 @@
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white" x-data="wifiApp()">
 
-  <!-- Toast Notifikasi -->
   <div class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm">
     <template x-for="toast in toasts" :key="toast.id">
       <div x-show="true" class="flex items-center gap-3 p-4 rounded-xl border backdrop-blur-md shadow-2xl bg-blue-500/10 border-blue-500/30 text-blue-400">
@@ -39,21 +38,20 @@
   <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
     <div class="max-w-6xl mx-auto px-4 h-18 flex items-center justify-between py-4">
       <div class="flex items-center gap-3">
-        <!-- LOGO WIFI KEMBALI DI SINI -->
         <a href="https://docs.google.com/spreadsheets/d/133lDo5JUktTWHswXlZmqzD5c32b6LMLoDlRjyun0yIc/edit?usp=sharing" target="_blank" 
-           class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg hover:scale-105 hover:shadow-indigo-500/50 transition-all cursor-pointer block" title="Buka Spreadsheet Asli">
+           class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg hover:scale-105 hover:shadow-indigo-500/50 transition-all cursor-pointer block flex-shrink-0" title="Buka Spreadsheet Asli">
           <i class="ph ph-wifi-high text-white text-2xl"></i>
         </a>
-        <div>
-          <h1 class="text-lg font-bold text-white flex items-center gap-2">
-            WiFi Pay <span class="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-full">PWA</span>
-            <span x-show="!isOnline" class="bg-rose-500 text-white text-[9px] px-2 py-0.5 rounded-full animate-pulse">OFFLINE MODE</span>
+        <div class="min-w-0">
+          <h1 class="text-lg font-bold text-white flex flex-wrap items-center gap-1.5">
+            <span>WiFi Pay</span>
+            <span class="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">PWA</span>
+            <span x-show="!isOnline" class="bg-rose-500 text-white text-[9px] px-2 py-0.5 rounded-full animate-pulse whitespace-nowrap">OFFLINE MODE</span>
           </h1>
-          <p class="text-[11px] text-slate-400 font-medium">Sinkronisasi Real-time Google Sheets</p>
+          <p class="text-[11px] text-slate-400 font-medium truncate">Sinkronisasi Real-time Google Sheets</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <!-- TOMBOL SINKRON KUNING DENGAN ANTI-SPAM KLIK -->
         <template x-if="offlineQueue.length > 0">
           <button @click="syncOfflineData()" :disabled="isSyncing" :class="isSyncing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-amber-400 animate-pulse'" class="p-2.5 rounded-lg bg-amber-500 text-slate-900 shadow-lg transition-all flex items-center gap-2 text-xs font-bold">
             <i class="ph ph-cloud-arrow-up text-sm" :class="isSyncing ? 'animate-bounce' : ''"></i>
@@ -65,7 +63,7 @@
           <i class="ph ph-arrows-clockwise text-sm" :class="loading ? 'animate-spin' : ''"></i><span class="hidden md:inline">Refresh Data</span>
         </button>
         <button @click="openAddModal()" class="p-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all flex items-center gap-2 text-xs font-bold">
-          <i class="ph ph-user-plus text-sm"></i><span class="hidden md:inline">Tambah Pelanggan</span>
+          <i class="ph ph-user-plus text-sm"></i><span class="hidden md:inline">Tambah</span>
         </button>
       </div>
     </div>
@@ -77,13 +75,11 @@
       <p class="text-xs font-semibold text-blue-300">Menyinkronkan data dengan sistem...</p>
     </div>
 
-    <!-- Statistik Card -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden"><p class="text-xs font-semibold text-slate-400 uppercase">Total Pelanggan</p><h3 class="text-2xl font-extrabold text-white mt-1" x-text="customers.length + ' Orang'"></h3><div class="absolute bottom-0 left-0 right-0 h-1 bg-blue-500"></div></div>
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden"><p class="text-xs font-semibold text-slate-400 uppercase">Total Tunggakan Uang</p><h3 class="text-2xl font-extrabold text-rose-500 mt-1" x-text="formatRupiah(calculateTotalArrears())"></h3><div class="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div></div>
     </div>
 
-    <!-- Rekap WhatsApp Section -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
       <div class="p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
@@ -115,7 +111,6 @@
       </div>
     </div>
 
-    <!-- Daftar Pelanggan Lengkap -->
     <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
       <div class="p-5 border-b border-slate-800 space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -163,7 +158,6 @@
             <div class="space-y-2">
               <p class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Klik Bulan Untuk Mencatat Pembayaran</p>
               <div class="flex gap-2 pb-1 overflow-x-auto">
-                <!-- PERUBAHAN DI SINI: Hanya memunculkan bulan dari waktu pelanggan pasang hingga Desember -->
                 <template x-for="m in getCustomerMonths(item.installationDate)" :key="m.index">
                   <button @click="openPaymentModal(item, m.index)"
                           :class="getButtonClass(item, m.index)"
@@ -183,7 +177,28 @@
     </div>
   </main>
 
-  <!-- Modal Tambah Pelanggan -->
+  <div x-show="showSyncWarning" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+    <div class="bg-slate-900 border border-amber-500/50 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl shadow-amber-500/20 text-center p-6 space-y-5">
+      <div class="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto animate-bounce">
+        <i class="ph ph-wifi-high text-3xl"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-black text-white">Sinyal Kembali!</h3>
+        <p class="text-xs text-slate-300 leading-relaxed mt-2">
+          Koneksi internet sudah stabil. Anda memiliki <strong class="text-amber-400" x-text="offlineQueue.length + ' data antrean'"></strong> yang belum terkirim ke sistem.
+        </p>
+      </div>
+      <div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl">
+        <p class="text-[11px] font-bold text-amber-500 flex items-center justify-center gap-2">
+          <i class="ph ph-warning-circle text-lg"></i> Jangan lupa tekan tombol kuning di atas!
+        </p>
+      </div>
+      <button @click="showSyncWarning = false" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold text-sm transition-all shadow-lg shadow-amber-500/20">
+        Oke, Saya Paham
+      </button>
+    </div>
+  </div>
+
   <div x-show="modalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm" @click.self="modalOpen = false">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
       <div class="p-5 border-b border-slate-800 flex justify-between items-center">
@@ -206,7 +221,6 @@
     </div>
   </div>
 
-  <!-- Modal Catat Pembayaran -->
   <div x-show="paymentModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm" @click.self="paymentModalOpen = false">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
       <div class="p-5 border-b border-slate-800 flex flex-col">
@@ -223,8 +237,8 @@
             ⚠️ INFORMASI:
           </p>
           <ul class="text-white text-[10px] font-bold list-disc pl-4 space-y-1.5 leading-relaxed tracking-wide">
-            <li>(G) adalah GRATIS karena mepet jadwal penagihan jadi tgl 10 yg akan datang gratis.</li>
-            <li>(D) adalah DISKON karena ada maintenance atau pemakaian belum sampai sebulan.</li>
+            <li>(G) adalah GRATIS karena mepet jadwal penagihan.</li>
+            <li>(D) adalah DISKON karena ada maintenance.</li>
           </ul>
         </div>
 
@@ -258,12 +272,25 @@
         
         isOnline: navigator.onLine,
         isSyncing: false,
+        showSyncWarning: false, // INDIKATOR POP-UP BARU
         offlineQueue: JSON.parse(localStorage.getItem('wifiOfflineQueue')) || [],
 
         init() { 
           if(this.customers.length === 0) this.fetchData();
-          window.addEventListener('online', () => { this.isOnline = true; this.showToast('📶 Sinyal kembali! Aplikasi Online.'); });
-          window.addEventListener('offline', () => { this.isOnline = false; this.showToast('⚠️ Sinyal hilang. Aplikasi masuk Mode Offline.'); });
+          
+          window.addEventListener('online', () => { 
+            this.isOnline = true; 
+            if (this.offlineQueue.length > 0) {
+              this.showSyncWarning = true; // Munculkan pop-up warning jika ada antrean
+            } else {
+              this.showToast('📶 Sinyal kembali! Aplikasi Online.'); 
+            }
+          });
+
+          window.addEventListener('offline', () => { 
+            this.isOnline = false; 
+            this.showToast('⚠️ Sinyal hilang. Aplikasi masuk Mode Offline.'); 
+          });
         },
         
         showToast(message) { const id = Date.now(); this.toasts.push({ id, message }); setTimeout(() => this.toasts = this.toasts.filter(t => t.id !== id), 5000); },
@@ -312,7 +339,6 @@
           return 0;
         },
 
-        // LOGIKA BARU: Mengambil Array Bulan Khusus Pelanggan
         getCustomerMonths(installDate) {
           let startIdx = this.getInstallMonthIndex(installDate);
           let validMonths = [];
