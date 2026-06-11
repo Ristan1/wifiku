@@ -7,6 +7,7 @@
   
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f172a">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3305/3305085.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -22,11 +23,11 @@
     input[type="date"] { color-scheme: dark; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col antialiased" x-data="wifiApp()">
+<body class="min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white" x-data="wifiApp()">
 
   <div class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm">
     <template x-for="toast in toasts" :key="toast.id">
-      <div class="flex items-center gap-3 p-4 rounded-xl border backdrop-blur-md shadow-2xl bg-blue-500/10 border-blue-500/30 text-blue-400">
+      <div x-show="true" class="flex items-center gap-3 p-4 rounded-xl border backdrop-blur-md shadow-2xl bg-blue-500/10 border-blue-500/30 text-blue-400">
         <i class="ph ph-info text-xl"></i>
         <p class="text-xs font-semibold" x-text="toast.message"></p>
         <button @click="removeToast(toast.id)" class="ml-auto"><i class="ph ph-x"></i></button>
@@ -36,11 +37,14 @@
 
   <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
     <div class="max-w-6xl mx-auto px-4 h-18 flex items-center justify-between py-4">
-      <div>
-        <h1 class="text-lg font-bold text-white flex items-center gap-2">
-          WiFi Pay <span class="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-full">PWA</span>
-          <span x-show="!isOnline" class="bg-rose-500 text-white text-[9px] px-2 py-0.5 rounded-full animate-pulse">OFFLINE MODE</span>
-        </h1>
+      <div class="flex items-center gap-3">
+        <div>
+          <h1 class="text-lg font-bold text-white flex items-center gap-2">
+            WiFi Pay <span class="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-full">PWA</span>
+            <span x-show="!isOnline" class="bg-rose-500 text-white text-[9px] px-2 py-0.5 rounded-full animate-pulse">OFFLINE MODE</span>
+          </h1>
+          <p class="text-[11px] text-slate-400 font-medium">Sistem Penagihan Mandiri</p>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <template x-if="offlineQueue.length > 0">
@@ -49,8 +53,8 @@
             <span class="hidden md:inline" x-text="'Sinkron ' + offlineQueue.length + ' Data'"></span>
           </button>
         </template>
-        <button @click="fetchData()" class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all flex items-center gap-2 text-xs" :disabled="loading">
-          <i class="ph ph-arrows-clockwise text-sm" :class="loading ? 'animate-spin' : ''"></i>
+        <button @click="fetchData()" class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all flex items-center gap-2 text-xs font-semibold" :disabled="loading">
+          <i class="ph ph-arrows-clockwise text-sm" :class="loading ? 'animate-spin' : ''"></i><span class="hidden md:inline">Refresh</span>
         </button>
         <button @click="openAddModal()" class="p-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all flex items-center gap-2 text-xs font-bold">
           <i class="ph ph-user-plus text-sm"></i><span class="hidden md:inline">Tambah</span>
@@ -62,7 +66,7 @@
   <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-6 space-y-6">
     <div x-show="loading" class="w-full bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl flex items-center gap-3">
       <svg class="animate-spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-      <p class="text-xs font-semibold text-blue-300">Menghubungkan ke Server API...</p>
+      <p class="text-xs font-semibold text-blue-300">Menyinkronkan data dengan server...</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -70,8 +74,53 @@
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden"><p class="text-xs font-semibold text-slate-400 uppercase">Total Tunggakan Uang</p><h3 class="text-2xl font-extrabold text-rose-500 mt-1" x-text="formatRupiah(calculateTotalArrears())"></h3><div class="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div></div>
     </div>
 
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div class="p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-400 animate-pulse">
+            <i class="ph ph-megaphone text-xl"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-white">Daftar Tagihan Belum Lunas</h3>
+            <p class="text-xs text-slate-400">Satu klik untuk mengumumkan sisa tunggakan ke grup WhatsApp.</p>
+          </div>
+        </div>
+        <button @click="copyWhatsAppAnnouncement()" class="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition-all self-start sm:self-auto">
+          <i class="ph ph-whatsapp-logo text-base"></i> Bagikan Rekap WA
+        </button>
+      </div>
+      <div class="p-5 bg-slate-950/50">
+        <div class="flex flex-wrap gap-2">
+          <template x-for="name in getActiveMonthUnpaidNames()" :key="name">
+            <span class="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> <span x-text="name"></span>
+            </span>
+          </template>
+          <template x-if="getActiveMonthUnpaidNames().length === 0">
+            <p class="text-xs font-medium text-emerald-400 flex items-center gap-2">
+              <i class="ph ph-check-circle text-lg"></i> Luar biasa! Seluruh pelanggan lunas / aman.
+            </p>
+          </template>
+        </div>
+      </div>
+    </div>
+
     <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
       <div class="p-5 border-b border-slate-800 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h2 class="text-base font-extrabold text-white flex items-center gap-2">
+            <i class="ph ph-notebook text-xl text-blue-500"></i> Daftar Pembukuan Lengkap
+          </h2>
+          <div class="flex bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+            <button @click="tabFilter = 'all'" :class="tabFilter === 'all' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-xs transition-all">
+              Semua
+            </button>
+            <button @click="tabFilter = 'unpaid'" :class="tabFilter === 'unpaid' ? 'bg-rose-600 text-white font-bold' : 'text-slate-400 hover:text-white'" class="px-3.5 py-1.5 rounded-lg text-xs transition-all relative">
+              Tunggakan
+            </button>
+          </div>
+        </div>
+
         <div class="relative">
           <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500"><i class="ph ph-magnifying-glass text-lg"></i></span>
           <input type="text" x-model="searchQuery" placeholder="Cari nama pelanggan..." class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl pl-10 pr-4 py-3 text-xs outline-none focus:border-blue-500 transition-all">
@@ -88,16 +137,19 @@
                   <h4 class="text-sm font-extrabold text-white" x-text="item.name"></h4>
                   <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
                     <span>Pasang: <strong class="text-slate-300" x-text="item.installationDate"></strong></span>
+                    <span class="w-1 h-1 rounded-full bg-slate-700"></span><span>Tarif: <strong class="text-slate-300">Rp 150.000</strong></span>
                   </p>
                 </div>
               </div>
+
               <div class="text-right">
-                <template x-if="item.realArrears > 0"><div><p class="text-[10px] font-bold text-rose-500 uppercase">Tunggakan</p><h4 class="text-lg font-black text-rose-500 mt-0.5" x-text="formatRupiah(item.realArrears)"></h4></div></template>
-                <template x-if="item.realArrears <= 0"><div><p class="text-[10px] font-bold text-emerald-500 uppercase">LUNAS AMAN</p></div></template>
+                <template x-if="item.realArrears > 0"><div><p class="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Tunggakan Tagihan</p><h4 class="text-lg font-black text-rose-500 mt-0.5" x-text="formatRupiah(item.realArrears)"></h4></div></template>
+                <template x-if="item.realArrears <= 0"><div><p class="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">LUNAS AMAN</p><h4 class="text-sm font-semibold text-emerald-400 mt-0.5">Lancar Jaya 🎉</h4></div></template>
               </div>
             </div>
 
             <div class="space-y-2">
+              <p class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Klik Bulan Untuk Mencatat Pembayaran</p>
               <div class="flex gap-2 pb-1 overflow-x-auto">
                 <template x-for="(month, mIndex) in months" :key="month">
                   <button @click="if(mIndex >= getInstallMonthIndex(item.installationDate)) openPaymentModal(item, mIndex)"
@@ -111,55 +163,96 @@
             </div>
           </div>
         </template>
+        <template x-if="filteredCustomers().length === 0">
+          <div class="p-10 text-center text-slate-500 text-xs font-bold">Tidak ada data.</div>
+        </template>
       </div>
     </div>
   </main>
+
+  <div x-show="modalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm" @click.self="modalOpen = false">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+      <div class="p-5 border-b border-slate-800 flex justify-between items-center">
+        <h3 class="text-base font-extrabold text-white">Tambah Pelanggan Baru</h3>
+      </div>
+      <form @submit.prevent="saveCustomer" class="p-5 space-y-4">
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold text-slate-400">NAMA PELANGGAN</label>
+          <input type="text" x-model="form.name" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500">
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold text-slate-400">TANGGAL PEMASANGAN</label>
+          <input type="date" x-model="form.installationDate" required class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500">
+        </div>
+        <div class="pt-2 flex gap-2">
+          <button type="button" @click="modalOpen = false" class="flex-1 py-2.5 rounded-lg bg-slate-800 text-slate-400 text-xs font-bold">Batal</button>
+          <button type="submit" class="flex-1 py-2.5 rounded-lg bg-blue-600 text-white text-xs font-bold shadow-lg shadow-blue-600/15">Simpan Data</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <div x-show="paymentModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm" @click.self="paymentModalOpen = false">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
       <div class="p-5 border-b border-slate-800 flex flex-col">
         <h3 class="text-base font-extrabold text-white">Catat Pembayaran</h3>
-        <p class="text-[11px] text-slate-400 mt-1">Pelanggan: <strong class="text-blue-400" x-text="paymentData.customer?.name"></strong></p>
+        <p class="text-[11px] text-slate-400 mt-1">
+          Pelanggan: <strong class="text-blue-400" x-text="paymentData.customer?.name"></strong> <br>
+          Bulan: <strong class="text-emerald-400 uppercase" x-text="paymentData.monthName"></strong>
+        </p>
       </div>
       <form @submit.prevent="submitPayment" class="p-5 space-y-4">
+        <div class="bg-rose-600 rounded-xl p-3 border border-rose-500 shadow-md">
+          <p class="text-white text-[11px] font-extrabold flex items-center gap-1.5 mb-1.5 tracking-wide">⚠️ INFORMASI:</p>
+          <ul class="text-white text-[10px] font-bold list-disc pl-4 space-y-1.5 leading-relaxed tracking-wide">
+            <li>(G) adalah GRATIS karena mepet jadwal penagihan.</li>
+            <li>(D) adalah DISKON karena ada maintenance.</li>
+          </ul>
+        </div>
         <div class="space-y-1.5">
           <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nominal Bayar / Kode Diskon</label>
-          <input type="text" x-model="paymentData.nominal" @input="formatInputNominal($event)" required placeholder="Contoh: 150.000" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 font-bold">
+          <input type="text" x-model="paymentData.nominal" @input="formatInputNominal($event)" required placeholder="Contoh: 150.000 atau 100.000(D10)" class="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 transition-all font-bold">
         </div>
         <div class="pt-2 flex gap-2">
-          <button type="button" @click="paymentModalOpen = false" class="flex-1 py-2.5 rounded-lg bg-slate-800 text-slate-400 text-xs font-bold">Batal</button>
-          <button type="submit" class="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/15">Proses Pembayaran</button>
+          <button type="button" @click="paymentModalOpen = false" class="flex-1 py-2.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs font-bold transition-all">Batal</button>
+          <button type="submit" class="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/15 transition-all">
+            Proses Pembayaran
+          </button>
         </div>
       </form>
     </div>
   </div>
 
   <script>
-    // MASUKKAN URL APP SCRIPT ANDA DI SINI
-    const API_URL = "https://script.google.com/macros/s/AKfycbwhV_3ZWP-Thpkm0qLSXXyuQ0_EBoAVUxDmhuXKcfXvSPguxaM85vPUwCn83tuZcnkA/exec";
+    // MASUKKAN URL APP SCRIPT ANDA DI BAWAH INI:
+    const API_URL = "URL_WEB_APP_ANDA_PASTE_DISINI";
 
     function wifiApp() {
       return {
         customers: JSON.parse(localStorage.getItem('wifiCacheData')) || [],
-        loading: false, searchQuery: '', 
+        loading: false, searchQuery: '', tabFilter: 'all', 
         months: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
+        monthFullNames: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
         toasts: [], modalOpen: false, form: { name: '', installationDate: '' },
         paymentModalOpen: false, paymentData: { customer: null, monthIndex: 0, monthName: '', nominal: '' },
+        
         isOnline: navigator.onLine,
         offlineQueue: JSON.parse(localStorage.getItem('wifiOfflineQueue')) || [],
 
         init() { 
           if(this.customers.length === 0) this.fetchData();
-          window.addEventListener('online', () => { this.isOnline = true; this.showToast('📶 Online kembali!'); });
-          window.addEventListener('offline', () => { this.isOnline = false; this.showToast('⚠️ Sinyal hilang. Mode Offline.'); });
+          window.addEventListener('online', () => { this.isOnline = true; this.showToast('📶 Sinyal kembali! Aplikasi Online.'); });
+          window.addEventListener('offline', () => { this.isOnline = false; this.showToast('⚠️ Sinyal hilang. Aplikasi masuk Mode Offline.'); });
         },
         
         showToast(message) { const id = Date.now(); this.toasts.push({ id, message }); setTimeout(() => this.toasts = this.toasts.filter(t => t.id !== id), 5000); },
+        removeToast(id) { this.toasts = this.toasts.filter(t => t.id !== id); },
+        getCurrentMonthIndex() { return new Date().getMonth(); },
+        getCurrentMonthName() { return this.monthFullNames[this.getCurrentMonthIndex()]; },
         saveQueueLocally() { localStorage.setItem('wifiOfflineQueue', JSON.stringify(this.offlineQueue)); },
 
-        // MENGAMBIL DATA DARI API GOOGLE
         async fetchData() {
-          if (!this.isOnline || API_URL.includes("URL_WEB_APP")) return;
+          if (!this.isOnline || API_URL === "URL_WEB_APP_ANDA_PASTE_DISINI") return;
           this.loading = true;
           try {
             const response = await fetch(`${API_URL}?action=getAllCustomers`);
@@ -167,7 +260,7 @@
             this.customers = data;
             localStorage.setItem('wifiCacheData', JSON.stringify(data)); 
           } catch (error) {
-            this.showToast("Gagal mengambil data dari server.");
+            this.showToast("Gagal menyinkronkan data dari server.");
           } finally {
             this.loading = false;
           }
@@ -188,6 +281,8 @@
 
         getInstallMonthIndex(dateStr) {
           if (!dateStr) return 0; const str = dateStr.toString().toLowerCase();
+          const currentYear = new Date().getFullYear();
+          if (str.includes((currentYear - 1).toString()) || str.includes((currentYear - 2).toString())) return 0;
           if (str.includes("jan")) return 0; if (str.includes("feb")) return 1; if (str.includes("mar")) return 2;
           if (str.includes("apr")) return 3; if (str.includes("mei") || str.includes("may")) return 4; if (str.includes("jun")) return 5;
           if (str.includes("jul")) return 6; if (str.includes("agu") || str.includes("aug")) return 7; if (str.includes("sep")) return 8;
@@ -202,21 +297,63 @@
         },
 
         getButtonClass(item, mIndex) {
-          if (mIndex < this.getInstallMonthIndex(item.installationDate)) return 'bg-slate-900 text-slate-700 opacity-50';
-          if (this.isPaid(item, mIndex)) return 'bg-emerald-600 text-white';
-          if (mIndex <= new Date().getMonth()) return 'bg-rose-500/10 text-rose-500';
-          return 'bg-slate-900 text-slate-400';
+          if (mIndex < this.getInstallMonthIndex(item.installationDate)) return 'bg-slate-900 border-slate-800/50 text-slate-700 opacity-50 cursor-not-allowed';
+          if (this.isPaid(item, mIndex)) return 'bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-600/10';
+          if (mIndex <= new Date().getMonth()) return 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20';
+          return 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white';
         },
 
         calculateTotalArrears() { return this.customers.reduce((acc, user) => acc + (user.realArrears > 0 ? user.realArrears : 0), 0); },
-        filteredCustomers() { return this.customers.filter(c => c.name.toLowerCase().includes(this.searchQuery.toLowerCase())); },
+        
+        filteredCustomers() {
+          return this.customers.filter(c => {
+            const matchesSearch = c.name.toLowerCase().includes(this.searchQuery.toLowerCase());
+            const matchesTab = this.tabFilter === 'all' || c.realArrears > 0;
+            return matchesSearch && matchesTab;
+          });
+        },
+
+        getActiveMonthUnpaidNames() { return this.customers.filter(c => c.realArrears > 0).map(c => c.name); },
+
+        copyWhatsAppAnnouncement() {
+          const unpaidList = this.customers.filter(c => c.realArrears > 0);
+          if (unpaidList.length === 0) { this.showToast("Semua lunas! Tidak ada tagihan yang harus disebar."); return; }
+          let text = `📢 *PENGUMUMAN BERSAMA TAGIHAN WIFI*\n\nKepada pelanggan wifi yang terhormat, berikut rekap tagihan yang belum dikonfirmasi:\n\n`;
+          unpaidList.forEach((cl, i) => { text += `${i + 1}. *${cl.name}* (${this.formatRupiah(cl.realArrears)})\n`; });
+          text += `\nMohon PM Admin jika Anda sudah transfer. Terima kasih 🙏`;
+          navigator.clipboard.writeText(text);
+          this.showToast("Berhasil disalin! Membuka WhatsApp...");
+          window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(text), "_blank");
+        },
+
+        openAddModal() { this.form = { name: '', installationDate: '' }; this.modalOpen = true; },
+        
+        async saveCustomer() {
+          this.modalOpen = false;
+          const payload = { type: 'newCustomer', data: { ...this.form } };
+
+          if (!this.isOnline) {
+            this.offlineQueue.push(payload); this.saveQueueLocally();
+            this.showToast(`Offline: Pelanggan ${this.form.name} masuk antrean.`);
+            return;
+          }
+
+          this.loading = true;
+          try {
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            this.showToast("Pelanggan Berhasil Ditambahkan!");
+            this.fetchData(); 
+          } catch(err) {
+            this.showToast("Gagal menyimpan, masuk antrean offline.");
+            this.offlineQueue.push(payload); this.saveQueueLocally();
+          } finally { this.loading = false; }
+        },
 
         openPaymentModal(customer, monthIndex) {
-          this.paymentData = { customer: customer, monthIndex: monthIndex, nominal: '' };
+          this.paymentData = { customer: customer, monthIndex: monthIndex, monthName: this.months[monthIndex], nominal: '' };
           this.paymentModalOpen = true;
         },
 
-        // MENGIRIM DATA PEMBAYARAN KE API
         async submitPayment() {
           const nominal = this.paymentData.nominal;
           if (!nominal || nominal.trim() === "") return;
@@ -227,6 +364,16 @@
 
           if (!this.isOnline) {
             this.offlineQueue.push(payload); this.saveQueueLocally();
+            
+            // Animasi Offline Optimis (pura-pura langsung berubah hijau)
+            const monthKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+            const cIndex = this.customers.findIndex(c => c.name === this.paymentData.customer.name);
+            if(cIndex !== -1) {
+              this.customers[cIndex][monthKeys[this.paymentData.monthIndex]] = "Lunas";
+              this.customers[cIndex].realArrears -= 150000; 
+              localStorage.setItem('wifiCacheData', JSON.stringify(this.customers));
+            }
+            
             this.showToast(`Offline: Pembayaran ${this.paymentData.customer.name} masuk antrean.`);
             return;
           }
@@ -234,32 +381,42 @@
           this.loading = true;
           try {
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            this.showToast("Berhasil!");
+            this.showToast("Data pembayaran sukses dicatat!");
             this.fetchData(); 
           } catch(err) {
-            this.showToast("Gagal mengirim, simpan ke antrean.");
+            this.showToast("Gagal menyimpan, masuk antrean offline.");
             this.offlineQueue.push(payload); this.saveQueueLocally();
           } finally { this.loading = false; }
         },
 
-        // MENEMBAK ANTREAN BRANKAS KE API
         async syncOfflineData() {
-          if (!this.isOnline) return this.showToast("Masih Offline!");
+          if (!this.isOnline) return this.showToast("Masih Offline! Cari sinyal dulu.");
           this.loading = true;
           
           for (let i = 0; i < this.offlineQueue.length; i++) {
             try {
               await fetch(API_URL, { method: 'POST', body: JSON.stringify(this.offlineQueue[i]) });
             } catch(e) {
-              this.showToast("Sinyal putus di tengah jalan!"); this.loading = false; return;
+              this.showToast("Sinyal putus! Proses sinkronisasi terhenti."); 
+              this.offlineQueue.splice(0, i); // Hapus data yang sudah sukses terkirim
+              this.saveQueueLocally();
+              this.loading = false; 
+              return;
             }
           }
           
           this.offlineQueue = []; this.saveQueueLocally();
-          this.showToast("✅ Sinkronisasi semua data selesai!");
+          this.showToast("✅ Sinkronisasi semua antrean selesai!");
           this.fetchData();
         }
       };
+    }
+
+    // REGISTRASI SERVICE WORKER UNTUK PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
     }
   </script>
 </body>
