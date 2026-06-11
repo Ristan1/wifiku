@@ -163,12 +163,13 @@
             <div class="space-y-2">
               <p class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Klik Bulan Untuk Mencatat Pembayaran</p>
               <div class="flex gap-2 pb-1 overflow-x-auto">
-                <template x-for="(month, mIndex) in months" :key="month">
-                  <button @click="if(mIndex >= getInstallMonthIndex(item.installationDate)) openPaymentModal(item, mIndex)"
-                          :class="getButtonClass(item, mIndex)"
+                <!-- PERUBAHAN DI SINI: Hanya memunculkan bulan dari waktu pelanggan pasang hingga Desember -->
+                <template x-for="m in getCustomerMonths(item.installationDate)" :key="m.index">
+                  <button @click="openPaymentModal(item, m.index)"
+                          :class="getButtonClass(item, m.index)"
                           class="flex-shrink-0 border px-3 py-2 rounded-xl text-center flex flex-col items-center gap-1 min-w-[56px] transition-all">
-                    <span class="text-[10px] font-bold" x-text="month"></span>
-                    <span class="text-[10px] font-extrabold" x-text="getButtonStatusText(item, mIndex)"></span>
+                    <span class="text-[10px] font-bold" x-text="m.name"></span>
+                    <span class="text-[10px] font-extrabold" x-text="getButtonStatusText(item, m.index)"></span>
                   </button>
                 </template>
               </div>
@@ -311,13 +312,21 @@
           return 0;
         },
 
+        // LOGIKA BARU: Mengambil Array Bulan Khusus Pelanggan
+        getCustomerMonths(installDate) {
+          let startIdx = this.getInstallMonthIndex(installDate);
+          let validMonths = [];
+          for (let i = startIdx; i < 12; i++) {
+            validMonths.push({ index: i, name: this.months[i] });
+          }
+          return validMonths;
+        },
+
         getButtonStatusText(item, mIndex) {
-          if (mIndex < this.getInstallMonthIndex(item.installationDate)) return 'KOSONG';
           return this.isPaid(item, mIndex) ? 'LUNAS' : 'BELUM';
         },
 
         getButtonClass(item, mIndex) {
-          if (mIndex < this.getInstallMonthIndex(item.installationDate)) return 'bg-slate-900 border-slate-800/50 text-slate-700 opacity-50 cursor-not-allowed';
           if (this.isPaid(item, mIndex)) return 'bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-600/10';
           if (mIndex <= new Date().getMonth()) return 'bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20 hover:text-rose-400';
           return 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600';
