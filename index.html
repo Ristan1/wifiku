@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiFi Pay - Dashboard Admin</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3305/3305085.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    input[type="date"] { color-scheme: dark; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white" x-data="wifiApp()">
+
+  <div class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm">
+    <template x-for="toast in toasts" :key="toast.id">
+      <div class="flex items-center gap-3 p-4 rounded-xl border backdrop-blur-md shadow-2xl bg-blue-500/10 border-blue-500/30 text-blue-400">
+        <i class="ph ph-info text-xl"></i>
+        <p class="text-xs font-semibold" x-text="toast.message"></p>
+        <button @click="removeToast(toast.id)" class="ml-auto"><i class="ph ph-x"></i></button>
+      </div>
+    </template>
+  </div>
+
+  <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-6xl mx-auto px-4 h-18 flex items-center justify-between py-4">
+      <div class="flex items-center gap-3">
+        <div>
+          <h1 class="text-lg font-bold text-white flex items-center gap-2">
+            WiFi Pay <span class="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-full">PWA</span>
+            <span x-show="!isOnline" class="bg-rose-500 text-white text-[9px] px-2 py-0.5 rounded-full animate-pulse">OFFLINE</span>
+          </h1>
+          <p class="text-[11px] text-slate-400 font-medium">Sistem Penagihan Mandiri</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <template x-if="offlineQueue.length > 0">
+          <button @click="syncOfflineData()" class="p-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg transition-all flex items-center gap-2 text-xs font-bold animate-pulse">
+            <i class="ph ph-cloud-arrow-up text-sm"></i>
+            <span class="hidden md:inline" x-text="'Sinkron ' + offlineQueue.length + ' Data'"></span>
+          </button>
+        </template>
+        <button @click="fetchData()" class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all flex items-center gap-2 text-xs font-semibold" :disabled="loading">
+          <i class="ph ph-arrows-clockwise text-sm" :class="loading ? 'animate-spin' : ''"></i>
+        </button>
+        <button @click="openAddModal()" class="p-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-lg transition-all flex items-center gap-2 text-xs font-bold">
+          <i class="ph ph-user-plus text-sm"></i><span class="hidden md:inline">Tambah</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-6 space-y-6">
+    <div x-show="loading" class="w-full bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl flex items-center gap-3">
+      <svg class="animate-spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+      <p class="text-xs font-semibold text-blue-300">Berkomunikasi dengan server...</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5"><p class="text-xs text-slate-400">Total Pelanggan</p><h3 class="text-2xl text-white mt-1" x-text="customers.length"></h3></div>
+    </div>
+    
+    <button @click="copyWhatsAppAnnouncement()" class="px-4 py-2 mt-4 rounded-lg bg-emerald-600 text-white text-xs font-bold">Bagikan Rekap WA</button>
+  </main>
+
+  <script>
+    // MASUKKAN URL WEB APP GOOGLE APPS SCRIPT ANDA DI SINI NANTI
+    const API_URL = https://script.google.com/macros/s/AKfycbwhV_3ZWP-Thpkm0qLSXXyuQ0_EBoAVUxDmhuXKcfXvSPguxaM85vPUwCn83tuZcnkA/exec";
+
+    function wifiApp() {
+      return {
+        customers: JSON.parse(localStorage.getItem('wifiCacheData')) || [], // Backup data terakhir
+        loading: false, 
+        toasts: [],
+        offlineQueue: JSON.parse(localStorage.getItem('wifiOfflineQueue')) || [],
+        isOnline: navigator.onLine,
+        
+        init() {
+          this.fetchData();
+          window.addEventListener('online', () => { this.isOnline = true; this.showToast('📶 Online kembali!'); });
+          window.addEventListener('offline', () => { this.isOnline = false; this.showToast('⚠️ Mode Offline.'); });
+        },
+
+        showToast(message) { const id = Date.now(); this.toasts.push({ id, message }); setTimeout(() => this.toasts = this.toasts.filter(t => t.id !== id), 5000); },
+        saveQueueLocally() { localStorage.setItem('wifiOfflineQueue', JSON.stringify(this.offlineQueue)); },
+
+        // MENGGUNAKAN FETCH (API)
+        async fetchData() {
+          if (!this.isOnline || API_URL === "URL_WEB_APP_GOOGLE_ANDA_DISINI") return;
+          this.loading = true;
+          try {
+            const response = await fetch(`${API_URL}?action=getAllCustomers`);
+            const data = await response.json();
+            this.customers = data;
+            localStorage.setItem('wifiCacheData', JSON.stringify(data)); // Simpan offline
+            this.loading = false;
+          } catch (error) {
+            this.showToast("Gagal mengambil data server.");
+            this.loading = false;
+          }
+        },
+
+        async processQueueItem(index) {
+          if (index >= this.offlineQueue.length) {
+            this.offlineQueue = []; this.saveQueueLocally();
+            this.showToast("✅ Sinkronisasi selesai!");
+            this.fetchData(); return;
+          }
+          let item = this.offlineQueue[index];
+          
+          try {
+            await fetch(API_URL, {
+              method: 'POST',
+              body: JSON.stringify(item)
+            });
+            this.processQueueItem(index + 1);
+          } catch (err) {
+            this.showToast("Gagal sinkron sebagian data.");
+            this.loading = false;
+          }
+        },
+
+        syncOfflineData() {
+          if (!this.isOnline) return this.showToast("Masih Offline!");
+          this.loading = true;
+          this.processQueueItem(0);
+        }
+      };
+    }
+
+    // REGISTRASI SERVICE WORKER UNTUK PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  </script>
+</body>
+</html>
